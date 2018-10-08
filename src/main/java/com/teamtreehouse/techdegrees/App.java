@@ -38,9 +38,11 @@ public class App {
         TodoDao todoDao = new Sql2oTodoDao(sql2o);
         Gson gson = new Gson();
 
+        // Method to return all Todos
         get(apiVersion + "todos", "application/json",
                 (req, res) -> todoDao.findAll(), gson::toJson);
 
+        // Method to add a new Todo to the list
         post(apiVersion + "todos", "application/json", (req, res) -> {
            Todo todo = gson.fromJson(req.body(), Todo.class);
            todoDao.add(todo);
@@ -48,6 +50,7 @@ public class App {
            return todo;
         }, gson::toJson);
 
+        // Method to change the details of an already saved Todo
         put(apiVersion + "todos/:id", "application/json", (req, res) -> {
             Todo todo = todoDao.findById(Integer.parseInt(req.params("id")));
             todo.setTask(gson.fromJson(req.body(), Todo.class).getTask());
@@ -56,6 +59,7 @@ public class App {
             return todo;
         },gson::toJson);
 
+        // Method to delete a Todo that is not needed anymore
         delete(apiVersion + "todos/:id", "application/json", (req, res) -> {
             todoDao.delete(Integer.parseInt(req.params("id")));
             res.status(204);

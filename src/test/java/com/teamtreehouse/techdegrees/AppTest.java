@@ -21,17 +21,17 @@
    import spark.Spark;
 
 public class AppTest {
-    public static final String PORT = "4568";
+    public static final String TEST_PORT = "4568";
     public static final String TEST_DATASOURCE = "jdbc:h2:mem:test";
-    private Sql2oTodoDao dao;
+    private Sql2oTodoDao todoDao;
     private Sql2o sql2o;
-    private Connection con;
+    private Connection conn;
     private ApiClient client;
     private Gson gson;
 
     @BeforeClass
     public static void StartServer() throws Exception {
-        String[] args = {PORT, TEST_DATASOURCE};
+        String[] args = {TEST_PORT, TEST_DATASOURCE};
         App.main(args);
     }
 
@@ -43,21 +43,21 @@ public class AppTest {
     @Before
     public void setUp() throws Exception {
         sql2o = new Sql2o(TEST_DATASOURCE + ";INIT=RUNSCRIPT from 'classpath:db/init.sql'", "", "");
-        dao = new Sql2oTodoDao(sql2o);
-        con = sql2o.open();
-        client = new ApiClient("http://localhost:" + PORT);
+        todoDao = new Sql2oTodoDao(sql2o);
+        conn = sql2o.open();
+        client = new ApiClient("http://localhost:" + TEST_PORT);
         gson = new Gson();
     }
 
     @After
     public void tearDown() throws Exception {
-        con.close();
+        conn.close();
     }
 
     @Test
     public void requestingTodosReturnsAll() throws Exception {
-        dao.add(new Todo("First",false));
-        dao.add(new Todo("Second",false));
+        todoDao.add(new Todo("First",false));
+        todoDao.add(new Todo("Second",false));
 
         ApiResponse res = client.request("GET", "/api/v1/todos");
         Todo[] todos = gson.fromJson(res.getBody(), Todo[].class);
@@ -80,15 +80,15 @@ public class AppTest {
 
         client.request("POST", "/api/v1/todos", gson.toJson(todo));
 
-        assertEquals(1, dao.findAll().size());
-        assertEquals("test", dao.findById(1).getTask());
-        assertEquals(false, dao.findById(1).isCompleted());
+        assertEquals(1, todoDao.findAll().size());
+        assertEquals("test", todoDao.findById(1).getTask());
+        assertEquals(false, todoDao.findById(1).isCompleted());
     }
 
     @Test
     public void puttingTodoChangesNameAndCompleted() throws Exception {
         Todo todo = new Todo("test", false);
-        dao.add(todo);
+        todoDao.add(todo);
         Map<String, Object> newTodo = new HashMap<>();
         newTodo.put("task", "updated name");
         newTodo.put("completed", true);
@@ -96,23 +96,23 @@ public class AppTest {
         client.request("PUT", String.format("/api/v1/todos/%d",todo.getId()), gson.toJson(newTodo));
 
         assertArrayEquals(new Object[]{"updated name", true},
-                new Object[]{dao.findById(todo.getId()).getTask(), dao.findById(todo.getId()).isCompleted()});
+                new Object[]{todoDao.findById(todo.getId()).getTask(), todoDao.findById(todo.getId()).isCompleted()});
     }
 
     @Test
     public void deleteTodoDeletesProperTodo() throws Exception {
         Todo todo = new Todo("test", false);
-        dao.add(todo);
+        todoDao.add(todo);
 
         client.request("DELETE", String.format("/api/v1/todos/%d", todo.getId()));
 
-        assertEquals(dao.findAll().size(), 0);
+        assertEquals(todoDao.findAll().size(), 0);
     }
 
     @Test
     public void deletingReturns204Status() throws Exception {
         Todo todo = new Todo("test", false);
-        dao.add(todo);
+        todoDao.add(todo);
 
         ApiResponse res = client.request("DELETE", String.format("/api/v1/todos/%d", todo.getId()));
 
@@ -122,7 +122,7 @@ public class AppTest {
     @Test
     public void deletingReturnsEmptyBody() throws Exception {
         Todo todo = new Todo("test", false);
-        dao.add(todo);
+        todoDao.add(todo);
 
         ApiResponse res = client.request("DELETE", String.format("/api/v1/todos/%d", todo.getId()));
 
